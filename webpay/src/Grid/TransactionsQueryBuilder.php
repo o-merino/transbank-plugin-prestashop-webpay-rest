@@ -87,6 +87,8 @@ final class TransactionsQueryBuilder extends AbstractDoctrineQueryBuilder
         WHEN status = ' . TransbankWebpayRestTransaction::STATUS_FAILED . ' THEN "Fallida"
         WHEN status = ' . TransbankWebpayRestTransaction::STATUS_ABORTED_BY_USER . ' THEN "Cancelada por el usuario"
         WHEN status = ' . TransbankWebpayRestTransaction::STATUS_APPROVED . ' THEN "Aprobada"
+        WHEN status = ' . TransbankWebpayRestTransaction::STATUS_ERROR . ' THEN "Error en formulario"
+        WHEN status = ' . TransbankWebpayRestTransaction::STATUS_TIMEOUT . ' THEN "Timeout"
         ELSE status
         END';
 
@@ -96,6 +98,8 @@ final class TransactionsQueryBuilder extends AbstractDoctrineQueryBuilder
         WHEN status = ' . TransbankWebpayRestTransaction::STATUS_FAILED . ' THEN "#E50B70"
         WHEN status = ' . TransbankWebpayRestTransaction::STATUS_ABORTED_BY_USER . ' THEN "#25B9D7"
         WHEN status = ' . TransbankWebpayRestTransaction::STATUS_APPROVED . ' THEN "#16C172"
+        WHEN status = ' . TransbankWebpayRestTransaction::STATUS_ERROR . ' THEN "#FF1744"
+        WHEN status = ' . TransbankWebpayRestTransaction::STATUS_TIMEOUT . ' THEN "#6D4C41"
         ELSE "#808080"
         END';
 
