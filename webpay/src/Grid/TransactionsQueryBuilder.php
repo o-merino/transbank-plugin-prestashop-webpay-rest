@@ -94,10 +94,10 @@ final class TransactionsQueryBuilder extends AbstractDoctrineQueryBuilder
 
         $caseColor = '
         CASE
-        WHEN status = ' . TransbankWebpayRestTransaction::STATUS_INITIALIZED . ' THEN "#E9DF00"
-        WHEN status = ' . TransbankWebpayRestTransaction::STATUS_FAILED . ' THEN "#E50B70"
-        WHEN status = ' . TransbankWebpayRestTransaction::STATUS_ABORTED_BY_USER . ' THEN "#25B9D7"
-        WHEN status = ' . TransbankWebpayRestTransaction::STATUS_APPROVED . ' THEN "#16C172"
+        WHEN status = ' . TransbankWebpayRestTransaction::STATUS_INITIALIZED . ' THEN "#F4B400"
+        WHEN status = ' . TransbankWebpayRestTransaction::STATUS_FAILED . ' THEN "#D32F2F"
+        WHEN status = ' . TransbankWebpayRestTransaction::STATUS_ABORTED_BY_USER . ' THEN "#F57C00"
+        WHEN status = ' . TransbankWebpayRestTransaction::STATUS_APPROVED . ' THEN "#2E7D32"
         WHEN status = ' . TransbankWebpayRestTransaction::STATUS_ERROR . ' THEN "#FF1744"
         WHEN status = ' . TransbankWebpayRestTransaction::STATUS_TIMEOUT . ' THEN "#6D4C41"
         ELSE "#808080"
