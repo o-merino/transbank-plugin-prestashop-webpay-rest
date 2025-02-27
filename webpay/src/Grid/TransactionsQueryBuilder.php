@@ -118,7 +118,7 @@ final class TransactionsQueryBuilder extends AbstractDoctrineQueryBuilder
         END';
 
 
-        $caseVCI  = "IF(vci IS NULL or vci = '', '--', vci)";
+        $caseVCI = "IF(vci IS NULL or vci = '', '--', vci)";
 
         $queryBuilder->select('order_id, response_code, (' . $caseVCI . ') as vci, amount, iso_code, card_number, token,
          (' . $caseStatus . ') as status, (' . $caseEnvironment . ') as environment,
