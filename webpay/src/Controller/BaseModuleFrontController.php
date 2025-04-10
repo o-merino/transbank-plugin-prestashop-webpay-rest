@@ -96,6 +96,25 @@ class BaseModuleFrontController extends ModuleFrontController
         return $cart->getOrderTotal(true, Cart::BOTH);// for CLP it should alway be a int
     }
 
+    protected function getOrderTotalProductos($cart)
+    {
+        if (!isset($cart)) {
+            $cart = $this->getCartFromContext();
+        }
+    
+        return $cart->getOrderTotal(true, Cart::ONLY_PRODUCTS); // Total productos 
+    }
+    
+    protected function getOrderTotalEnvio($cart)
+    {
+        if (!isset($cart)) {
+            $cart = $this->getCartFromContext();
+        }
+    
+        return $cart->getOrderTotal(true, Cart::ONLY_SHIPPING); // Total envío 
+    }
+    
+
 
     protected function setPaymentErrorPage($errorMessage)
     {
