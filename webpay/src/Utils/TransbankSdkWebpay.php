@@ -10,7 +10,11 @@ use Transbank\Webpay\WebpayPlus\Responses\TransactionCommitResponse;
 use Transbank\Webpay\WebpayPlus\Transaction;
 use Transbank\Webpay\WebpayPlus\Exceptions\TransactionCommitException;
 use Transbank\Webpay\WebpayPlus\Exceptions\TransactionCreateException;
-
+//mall
+use Transbank\Webpay\WebpayPlus\MallTransaction;
+use Transbank\Webpay\WebpayPlus\Responses\MallTransactionCommitResponse;
+use Transbank\Webpay\WebpayPlus\Exceptions\MallTransactionCommitException;
+use Transbank\Webpay\WebpayPlus\Exceptions\MallTransactionCreateException;
 /**
  * Class TransbankSdkWebpayRest.
  */
@@ -18,11 +22,14 @@ class TransbankSdkWebpay
 {
     /**
      * @var Options
+     * @var MallOptions
      */
     public $options;
+    public $malloptions;
     protected $log;
 
     protected $transaction = null;
+    protected $malltransaction = null;
 
     /**
      * TransbankSdkWebpayRest constructor.
@@ -33,10 +40,17 @@ class TransbankSdkWebpay
     {
         $this->log = TbkFactory::createLogger();
         $this->options = Transaction::getDefaultOptions();
+        $this->malloptions = MallTransaction::getDefaultOptions();
+
         $environment = isset($config['ENVIRONMENT']) ? $config['ENVIRONMENT'] : null;
+
         if (isset($config) && $environment == Options::ENVIRONMENT_PRODUCTION) {
             $this->options = Options::forProduction($config['COMMERCE_CODE'], $config['API_KEY_SECRET']);
+            $this->malloptions = Options::forProduction($config['COMMERCE_CODE'], $config['API_KEY_SECRET']);
         }
+        
+        $this->mallTransaction = new MallTransaction($this->malloptions);
+
         $this->transaction = new Transaction($this->options);
     }
 
@@ -69,8 +83,12 @@ class TransbankSdkWebpay
             $txTime = date('H:i:s');
             $this->log->logInfo('createTransaction : amount: ' . $amount . ', sessionId: ' .
                 $sessionId . ', buyOrder: ' . $buyOrder . ', txDate: ' . $txDate . ', txTime: ' . $txTime);
+                
             $initResult = $this->transaction->create($buyOrder, $sessionId, $amount, $returnUrl);
+
+
             $this->log->logInfo('createTransaction.result: ' . json_encode($initResult));
+            
             if (isset($initResult) && isset($initResult->url) && isset($initResult->token)) {
                 $result = [
                     'url' => $initResult->url,
@@ -88,6 +106,42 @@ class TransbankSdkWebpay
 
         return $result;
     }
+
+    public function createMallTransaction($details, $sessionId, $buyOrder, $returnUrl)
+    {
+        $result = [];
+
+        try {
+            $txDate = date('d-m-Y');
+            $txTime = date('H:i:s');
+
+            $this->log->logInfo('createMallTransaction : details: ' . json_encode($details) . ', sessionId: ' .
+                $sessionId . ', buyOrder: ' . $buyOrder . ', txDate: ' . $txDate . ', txTime: ' . $txTime);
+                
+
+            $initResult = $this->mallTransaction->create($buyOrder, $sessionId, $returnUrl, $details);
+
+            $this->log->logInfo('createTransactionMall.result: ' . json_encode($initResult));
+            
+            if (isset($initResult) && isset($initResult->url) && isset($initResult->token)) {
+                $result = [
+                    'url' => $initResult->url,
+                    'token_ws' => $initResult->token,
+                ];
+            } else {
+                $errorMessage = "Error creando la transacción mall para => buyOrder: {$buyOrder}, details: {$details}";
+                throw new EcommerceException($errorMessage);
+            }
+        } catch (MallTransactionCreateException $e) {
+            $errorMessage = "Error creando la transacción Mall para =>
+                buyOrder: {$buyOrder}, details: {$details}, error: {$e->getMessage()}";
+            throw new EcommerceException($errorMessage, $e);
+        }
+
+        return $result;
+    }
+
+
 
     /**
      * @param $token
@@ -110,4 +164,21 @@ class TransbankSdkWebpay
             throw new EcommerceException($errorMessage, $e);
         }
     }
+
+
+    public function commitMallTransaction(string $token): MallTransactionCommitResponse
+    {
+        try {
+            $this->log->logInfo("commitMallTransaction : token: {$token}");
+            if (!isset($token)) {
+                throw new EcommerceException('El token webpay es requerido');
+            }
+
+            return $this->malltransaction->commit($token);
+        } catch (MallTransactionCommitException | \InvalidArgumentException | GuzzleException $e) {
+            $errorMessage = "Error confirmando la transacción Mall para el token: {$token}, error: {$e->getMessage()}";
+            throw new EcommerceException($errorMessage, $e);
+        }
+    }
+
 }

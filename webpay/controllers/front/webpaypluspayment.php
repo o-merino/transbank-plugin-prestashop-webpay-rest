@@ -45,9 +45,41 @@ class WebPayWebpayplusPaymentModuleFrontController extends BaseModuleFrontContro
             $this->logInfo("amount: {$amount} sessionId: {$sessionId} buyOrder: {$buyOrder} returnUrl: {$returnUrl}");
 
             $webpaySdk = WebpayPlusFactory::create();
-            $createResponse = $webpaySdk->createTransaction($amount, $sessionId, $buyOrder, $returnUrl);
+            /*     */
+                
+            $isMall = false;
+            $despacho = $this->getOrderTotalEnvio($cart);
+            $totalProductos = $this->getOrderTotalProductos($cart);
+            $this->logInfo("Total productos: {$totalProductos} Total despacho: {$despacho} amount: {$amount}"); 
 
-            $this->logInfo("Transacción creada. [Respuesta]:");
+            if ($despacho == 0) {
+                $createResponse = $webpaySdk->createTransaction($amount, $sessionId, $buyOrder, $returnUrl);
+                $this->logInfo("Transacción Webpay creada. [Respuesta]:");
+
+            }else {
+                // crear la transacción Mall
+                $returnUrl = $this->getReturnUrl('webpaymallpaymentvalidate');
+
+                $details = [
+                    [
+                        "commerceCode" => "597055555536", 
+                        "buyOrder"    => $buyOrder .'-PRD',    
+                        "amount"      => $totalProductos          
+                    ],
+                    [
+                        "commerceCode" => "597055555537", 
+                        "buyOrder"    => $buyOrder .'-DLV',    
+                        "amount"      => $despacho           
+                    ]
+                ];
+                $createResponse = $webpaySdk->createMallTransaction($details, $sessionId, $buyOrder, $returnUrl);
+                $isMall = true;
+                $this->logInfo("Transacción Webpay Mall creada. [ ]:");
+
+            }
+
+
+
             $this->logInfo(json_encode($createResponse));
 
             $this->createTransbankTransactionRecord(
@@ -57,7 +89,8 @@ class WebPayWebpayplusPaymentModuleFrontController extends BaseModuleFrontContro
                 $cart->id_currency,
                 $createResponse['token_ws'],
                 $buyOrder,
-                $amount
+                $amount,
+                $isMall
             );
 
             $this->setRedirectionTemplate($createResponse, $amount);
@@ -86,14 +119,15 @@ class WebPayWebpayplusPaymentModuleFrontController extends BaseModuleFrontContro
      *
      * @throws EcommerceException If the transaction cannot be saved in the database.
      */
-    private function createTransbankTransactionRecord(
+    private function    createTransbankTransactionRecord(
         TransbankSdkWebpay $webpay,
         string $sessionId,
         int $cartId,
         int $currencyId,
         string $token,
         string $buyOrder,
-        float $amount
+        float $amount,
+        bool $isMall
     ): void {
 
         $transaction = new TransbankWebpayRestTransaction();
@@ -109,7 +143,12 @@ class WebPayWebpayplusPaymentModuleFrontController extends BaseModuleFrontContro
 
         $transaction->commerce_code = $webpay->getCommerceCode();
         $transaction->environment = $webpay->getEnviroment();
-        $transaction->product = TransbankWebpayRestTransaction::PRODUCT_WEBPAY_PLUS;
+
+        if ($isMall) {
+            $transaction->product = TransbankWebpayRestTransaction::PRODUCT_WEBPAY_MALL;
+        } else {
+            $transaction->product = TransbankWebpayRestTransaction::PRODUCT_WEBPAY_PLUS;
+        }
 
         $this->logInfo("Creando registro en la tabla webpay_transactions [Datos]:");
         $this->logInfo(json_encode($transaction));

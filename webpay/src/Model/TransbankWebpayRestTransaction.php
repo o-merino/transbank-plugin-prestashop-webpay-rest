@@ -15,6 +15,7 @@ class TransbankWebpayRestTransaction extends ObjectModel
     const STATUS_ERROR = 6;
 
     const PRODUCT_WEBPAY_PLUS = 'webpay_plus';
+    const PRODUCT_WEBPAY_MALL = 'webpay_mall';
     const PRODUCT_WEBPAY_ONECLICK = 'webpay_oneclick';
 
     public $id;
