@@ -94,6 +94,7 @@ class WebPay extends PaymentModule
             return $displayAdminOrderSide->execute($params);
         } catch (Throwable $e) {
             $this->logError("Error el ejecutar el hook: {$e->getMessage()}");
+            return null;
         }
     }
 
@@ -115,51 +116,13 @@ class WebPay extends PaymentModule
     {
         try {
             $this->logInfo("Ejecutando hook displayPaymentReturn");
-    
-            $order = $params['order'];
-            $transaction = \PrestaShop\Module\WebpayPlus\Model\TransbankWebpayRestTransaction::getByOrderId($order->id);
-    
-            if (!$transaction) {
-                $this->logError("No se encontró la transacción para la orden ID: {$order->id}");
-                return '';
-            }
-    
-            $response = json_decode($transaction->transbank_response ?? '{}');
-            $amount = (float) $transaction->amount;
-            $authorizationCode = '';
-            $status = $transaction->status ?? 0;
-            $vci = $transaction->vci ?? 'N/A';
-            $cardNumber = $transaction->card_number ?? '****';
-    
-            // Si es transacción Mall, recalcula el monto y saca el primer código de autorización
-            if ($transaction->product === 'webpay_mall' && isset($response->details) && is_array($response->details)) {
-                $amount = 0;
-                foreach ($response->details as $detail) {
-                    $amount += $detail->amount ?? 0;
-                }
-                $authorizationCode = $response->details[0]->authorizationCode ?? '';
-            } else {
-                // flujo Webpay normal
-                $authorizationCode = $response->authorizationCode ?? '';
-            }
-    
             $displayPaymentReturn = new DisplayPaymentReturn();
-    
-            return $displayPaymentReturn->execute([
-                'order' => $order,
-                'amount' => $amount,
-                'authorizationCode' => $authorizationCode,
-                'status' => (string) $status,
-                'vci' => $vci,
-                'cardNumber' => $cardNumber,
-            ]);
+            return $displayPaymentReturn->execute($params);
         } catch (Throwable $e) {
-            $this->logError("Error al ejecutar el hook displayPaymentReturn: {$e->getMessage()}");
-            return '';
+            $this->logError("Error  al ejecutar el hook displayPaymentReturn: {$e->getMessage()}");
+            return null;
         }
     }
-    
-    
 
     /*
         Muestra la opciones de pago disponibles

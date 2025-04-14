@@ -63,12 +63,12 @@ class TransbankWebpayRestTransaction extends ObjectModel
             'card_number' => ['type' => self::TYPE_STRING, 'validate' => 'isString', 'allow_null' => true],
         ],
     ];
-    
     public static function getByOrderId($orderId)
     {
-        $sql = 'SELECT * FROM `' . _DB_PREFIX_ . self::$definition['table'] . '` WHERE `order_id` = "' . pSQL($orderId) . '" LIMIT 1';
+        $sql = 'SELECT * FROM `' . _DB_PREFIX_ . self::$definition['table'] . '` WHERE `order_id` = "' . pSQL($orderId) . '"';
         $row = \Db::getInstance()->getRow($sql);
         return $row ? new self($row['id']) : null;
     }
+    
 
 }

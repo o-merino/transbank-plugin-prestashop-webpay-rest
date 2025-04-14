@@ -44,37 +44,65 @@ class DisplayAdminOrderSide implements HookHandlerInterface
     {
         $orderId = $params['id_order'];
         $order = new Order($orderId);
-
+    
         if ($order->module != "webpay") {
             return null;
         }
-
+    
         $transbankTransaction = $this->getTransactionWebpayApprovedByOrderId($orderId);
         $transbankResponse = $transbankTransaction->transbank_response;
-
+    
         if (!isset($transbankResponse)) {
             return null;
         }
-
+    
         $product = $transbankTransaction->product;
         $objectResponse = json_decode($transbankResponse);
-
         $formattedResponse = [];
+        $status = 'desconocido';
+        $mallDetails = [];
+    
         if ($product === TransbankWebpayRestTransaction::PRODUCT_WEBPAY_ONECLICK) {
             $formattedResponse = TbkResponseUtil::getOneclickStatusFormattedResponse($objectResponse);
-            $status = $objectResponse->details[0]->status;
+            $status = $objectResponse->details[0]->status ?? 'desconocido';
+    
+        } elseif ($product === TransbankWebpayRestTransaction::PRODUCT_WEBPAY_MALL) {
+            $formattedResponse = TbkResponseUtil::getWebpayStatusFormattedResponse($objectResponse);
+            $formattedResponse['token'] = $transbankTransaction->token;
+            $status = 'AUTHORIZED';
+    
+            if (isset($objectResponse->details) && is_array($objectResponse->details)) {
+                foreach ($objectResponse->details as $detail) {
+                    $mallDetails[] = [
+                        'commerce_code' => $detail->commerceCode ?? '',
+                        'buy_order' => $detail->buyOrder ?? '',
+                        'amount' => $detail->amount ?? 0,
+                        'authorization_code' => $detail->authorizationCode ?? '',
+                        'status' => (string) ($detail->status ?? 'AUTHORIZED'),
+                    ];
+                }
+            }
         } else {
             $formattedResponse = TbkResponseUtil::getWebpayStatusFormattedResponse($objectResponse);
             $formattedResponse['token'] = $transbankTransaction->token;
-            $status = $objectResponse->status;
+            $status = $objectResponse->status ?? 'desconocido';
         }
-
-        return $this->template->render('hook/payment_detail.html.twig', [
+    
+        // ✅ Inicializamos correctamente los parámetros del template
+        $templateParams = [
             'title' => $this->buildTitleText($product, $status),
             'isPsGreaterOrEqual177' => version_compare(_PS_VERSION_, '1.7.7.0', '>='),
-            'dataView' => $this->buildDataForView($formattedResponse)
-        ]);
+            'dataView' => $this->buildDataForView($formattedResponse),
+        ];
+    
+        if (!empty($mallDetails)) {
+            $templateParams['mallDetails'] = $mallDetails;
+        }
+    
+        return $this->template->render('hook/payment_detail.html.twig', $templateParams);
     }
+    
+    
 
     /**
      * Builds the data array for rendering the Twig view.
