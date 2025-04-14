@@ -62,16 +62,17 @@ class WebPayWebpayplusPaymentModuleFrontController extends BaseModuleFrontContro
 
                 $details = [
                     [
-                        "commerceCode" => "597055555536", 
-                        "buyOrder"    => $buyOrder .'-PRD',    
-                        "amount"      => $totalProductos          
+                        'commerce_code' => '597055555536',
+                        'buy_order'     => $buyOrder . '-PRD',
+                        'amount'        => $totalProductos
                     ],
                     [
-                        "commerceCode" => "597055555537", 
-                        "buyOrder"    => $buyOrder .'-DLV',    
-                        "amount"      => $despacho           
+                        'commerce_code' => '597055555537',
+                        'buy_order'     => $buyOrder . '-DLV',
+                        'amount'        => $despacho
                     ]
                 ];
+                
                 $createResponse = $webpaySdk->createMallTransaction($details, $sessionId, $buyOrder, $returnUrl);
                 $isMall = true;
                 $this->logInfo("Transacción Webpay Mall creada. [ ]:");
