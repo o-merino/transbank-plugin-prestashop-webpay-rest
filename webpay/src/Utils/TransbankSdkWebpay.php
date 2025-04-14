@@ -29,7 +29,7 @@ class TransbankSdkWebpay
     protected $log;
 
     protected $transaction = null;
-    protected $malltransaction = null;
+    protected $mallTransaction = null;
 
     /**
      * TransbankSdkWebpayRest constructor.
@@ -169,12 +169,12 @@ class TransbankSdkWebpay
     public function commitMallTransaction(string $token): MallTransactionCommitResponse
     {
         try {
-            $this->log->logInfo("commitMallTransaction : token: {$token}");
+            $this->log->logInfo("commit MallTransaction : token: {$token}");
             if (!isset($token)) {
                 throw new EcommerceException('El token webpay es requerido');
             }
 
-            return $this->malltransaction->commit($token);
+            return $this->mallTransaction->commit($token);
         } catch (MallTransactionCommitException | \InvalidArgumentException | GuzzleException $e) {
             $errorMessage = "Error confirmando la transacción Mall para el token: {$token}, error: {$e->getMessage()}";
             throw new EcommerceException($errorMessage, $e);

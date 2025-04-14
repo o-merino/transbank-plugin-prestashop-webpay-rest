@@ -58,9 +58,12 @@ class WebPayWebpayplusPaymentModuleFrontController extends BaseModuleFrontContro
 
             }else {
                 // crear la transacción Mall
+                $this->logInfo("Creando transacción Webpay Mall porque incluye despacho. [Datos]:");
+                $this->logInfo("amount: {$totalProductos} sessionId: {$sessionId} buyOrder: {$buyOrder} returnUrl: {$returnUrl}");
+                
                 $returnUrl = $this->getReturnUrl('webpaymallpaymentvalidate');
 
-                $details = [
+                $details = [ 
                     [
                         'commerce_code' => '597055555536',
                         'buy_order'     => $buyOrder . '-PRD',

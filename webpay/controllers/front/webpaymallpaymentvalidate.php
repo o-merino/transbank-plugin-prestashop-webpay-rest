@@ -3,7 +3,7 @@
 use PrestaShop\Module\WebpayPlus\Config\WebpayConfig;
 use PrestaShop\Module\WebpayPlus\Controller\PaymentModuleFrontController;
 use PrestaShop\Module\WebpayPlus\Helpers\WebpayPlusFactory;
-use Transbank\Webpay\WebpayPlus\Responses\TransactionCommitResponse;
+use Transbank\Webpay\WebpayPlus\Responses\MallTransactionCommitResponse;
 use PrestaShop\Module\WebpayPlus\Model\TransbankWebpayRestTransaction;
 use PrestaShop\Module\WebpayPlus\Helpers\InteractsWithWebpayDb;
 use PrestaShop\Module\WebpayPlus\Helpers\TbkFactory;
@@ -163,7 +163,7 @@ class WebPayWebpaymallPaymentValidateModuleFrontController extends PaymentModule
 
 
         $transbankSdk = WebpayPlusFactory::create();
-        $commitResponse = $transbankSdk->commitTransaction($token);
+        $commitResponse = $transbankSdk->commitMallTransaction($token);
 
         if ($commitResponse->isApproved()) {
             $this->handleAuthorizedTransaction(
@@ -255,7 +255,7 @@ class WebPayWebpaymallPaymentValidateModuleFrontController extends PaymentModule
      *
      * @param Cart $cart The cart object.
      * @param PrestaShop\Module\WebpayPlus\Model\TransbankWebpayRestTransaction $webpayTransaction The Webpay transaction object.
-     * @param Transbank\Webpay\WebpayPlus\Responses\TransactionCommitResponse $commitResponse The commit response from Transbank.
+     * @param Transbank\Webpay\WebpayPlus\Responses\MallTransactionCommitResponse $commitResponse The commit response from Transbank.
      *
      * @throws Transbank\Plugin\Exceptions\EcommerceException
      * @return void
@@ -263,26 +263,28 @@ class WebPayWebpaymallPaymentValidateModuleFrontController extends PaymentModule
     private function handleAuthorizedTransaction(
         Cart $cart,
         TransbankWebpayRestTransaction $webpayTransaction,
-        TransactionCommitResponse $commitResponse
+        MallTransactionCommitResponse $commitResponse
     ): void {
         $token = $webpayTransaction->token;
         $this->logInfo("Transacción autorizada por Transbank, procesando orden con token: {$token}");
-
-        $webpayTransaction->transbank_response = json_encode($commitResponse);
-        $webpayTransaction->status = TransbankWebpayRestTransaction::STATUS_APPROVED;
-        $webpayTransaction->response_code = $commitResponse->getResponseCode();
-        $webpayTransaction->card_number = $commitResponse->getCardNumber();
-        $webpayTransaction->vci = $commitResponse->getVci();
-        $saved = $webpayTransaction->save();
-
-        if (!$saved) {
-            $message = "No se pudo actualizar la transacción en la tabla webpay_transactions con token: {$token}";
-            throw new EcommerceException($message);
+    
+        $detalles = $commitResponse->getDetails();
+    
+        // Verifica que todas las subtransacciones estén autorizadas
+        foreach ($detalles as $detalle) {
+            if ($detalle->getResponseCode() !== 0) {
+                throw new EcommerceException("Una subtransacción fue rechazada: " . $detalle->getBuyOrder());
+            }
         }
-
+    
+        $first = $detalles[0]; // Usado para authorizationCode
+    
+        $this->mapCommitResponseToTransactionFields($webpayTransaction, $commitResponse);
+        $webpayTransaction->save();
+    
         $customer = $this->getCustomer($cart->id_customer);
         $currency = Context::getContext()->currency;
-
+    
         $this->module->validateOrder(
             $cart->id,
             $this->getOrderStatusAfterPayment(),
@@ -294,54 +296,51 @@ class WebPayWebpaymallPaymentValidateModuleFrontController extends PaymentModule
             false,
             $customer->secure_key
         );
-
+    
         $idOrder = Order::getIdByCartId($cart->id);
         $order = new Order($idOrder);
-
+    
         $this->logInfo("Orden creada. Order ID: {$order->id} Cart ID: {$cart->id} Token: {$token}");
-
+    
         $webpayTransaction->order_id = $order->id;
         $webpayTransaction->save();
-
-        $this->saveOrderPayment($order, $cart, $commitResponse->getCardNumber());
-
+    
+        $this->saveOrderPayment($order, $cart, $first->getAuthorizationCode());
+    
         $this->redirectToPaidSuccessPaymentPage($cart);
     }
+    
+    
 
     /**
      * Handles the case when the transaction is unauthorized by Transbank.
      *
      * @param Cart $cart The cart object.
      * @param PrestaShop\Module\WebpayPlus\Model\TransbankWebpayRestTransaction $webpayTransaction The Webpay transaction object.
-     * @param Transbank\Webpay\WebpayPlus\Responses\TransactionCommitResponse $commitResponse The commit response from Transbank.
+     * @param Transbank\Webpay\WebpayPlus\Responses\MallTransactionCommitResponse $commitResponse The commit response from Transbank.
      *
      * @throws Transbank\Plugin\Exceptions\EcommerceException
      * @return void
      */
     private function handleUnauthorizedTransaction(
         TransbankWebpayRestTransaction $webpayTransaction,
-        TransactionCommitResponse $commitResponse
+        MallTransactionCommitResponse $commitResponse
     ): void {
         $token = $webpayTransaction->token;
         $this->logInfo("Transacción rechazada por Transbank con token: {$token}");
-
-        $webpayTransaction->transbank_response = json_encode($commitResponse);
-        $webpayTransaction->response_code = $commitResponse->getResponseCode();
-        $webpayTransaction->card_number = $commitResponse->getCardNumber();
-        $webpayTransaction->vci = $commitResponse->getVci();
-        $saved = $webpayTransaction->save();
-
-        if (!$saved) {
-            $message = "No se pudo actualizar la transacción en la tabla webpay_transactions con token: {$token}";
-            throw new EcommerceException($message);
-        }
-
+    
+        $this->mapCommitResponseToTransactionFields($webpayTransaction, $commitResponse);
+        $webpayTransaction->status = TransbankWebpayRestTransaction::STATUS_FAILED;
+        $webpayTransaction->save();
+    
         $this->handleAbortedTransaction(
             $webpayTransaction,
             TransbankWebpayRestTransaction::STATUS_FAILED,
             self::WEBPAY_FAILED_FLOW_MESSAGE
         );
     }
+    
+    
 
     /**
      * Handles the case when the transaction is aborted.
@@ -469,4 +468,28 @@ class WebPayWebpaymallPaymentValidateModuleFrontController extends PaymentModule
     {
         return $status != TransbankWebpayRestTransaction::STATUS_INITIALIZED;
     }
+    /**
+     * Mapea los datos relevantes desde MallTransactionCommitResponse al objeto TransbankWebpayRestTransaction.
+     *
+     * @param TransbankWebpayRestTransaction 
+     * @param MallTransactionCommitResponse 
+     * @return void
+     */
+    private function mapCommitResponseToTransactionFields(
+        TransbankWebpayRestTransaction $webpayTransaction,
+        MallTransactionCommitResponse $commitResponse
+    ): void {
+        $data = json_decode(json_encode($commitResponse), true); 
+        $detalles = $commitResponse->getDetails();
+        $first = $detalles[0];
+
+        $webpayTransaction->transbank_response = json_encode($commitResponse);
+        $webpayTransaction->status = TransbankWebpayRestTransaction::STATUS_APPROVED;
+        $webpayTransaction->response_code = $first->getResponseCode();
+        $webpayTransaction->card_number = $data['cardDetail']['card_number'] ?? null;
+        $webpayTransaction->vci = $data['vci'] ?? null;
+    }
+
 }
+
+
