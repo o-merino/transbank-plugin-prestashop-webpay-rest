@@ -180,5 +180,22 @@ class TransbankSdkWebpay
             throw new EcommerceException($errorMessage, $e);
         }
     }
+    
+    public function refundMallTransaction(string $token, string $buyOrder, string $commerceCode, int $amount)
+    {
+        try {
+            $this->log->logInfo("Ejecutando refundMallTransaction: token: {$token}, buyOrder: {$buyOrder}, commerceCode: {$commerceCode}, amount: {$amount}");
+
+            $response = $this->mallTransaction->refund($token, $buyOrder, $commerceCode, $amount);
+
+            $this->log->logInfo("Resultado refundMallTransaction: " . json_encode($response));
+
+            return $response;
+        } catch (\Exception $e) {
+            $this->log->logError("Error en refundMallTransaction: " . $e->getMessage());
+            throw new EcommerceException("Error ejecutando refund para subtransacción: {$buyOrder}", $e);
+        }
+    }
+
 
 }

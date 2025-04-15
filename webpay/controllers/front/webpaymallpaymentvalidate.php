@@ -155,8 +155,9 @@ class WebPayWebpaymallPaymentValidateModuleFrontController extends PaymentModule
         
         $productos = $this->getOrderTotalProductos($cart);
         $envio = $this->getOrderTotalEnvio($cart);
-
-        if ($webpayTransaction->amount != ($productos + $envio)) {
+        $montoEsperado = $productos + $envio;
+    
+        if ($webpayTransaction->amount != $montoEsperado) {
             $this->handleCartManipulated($webpayTransaction);
             return;
         }
@@ -164,14 +165,51 @@ class WebPayWebpaymallPaymentValidateModuleFrontController extends PaymentModule
 
         $transbankSdk = WebpayPlusFactory::create();
         $commitResponse = $transbankSdk->commitMallTransaction($token);
-
-        if ($commitResponse->isApproved()) {
-            $this->handleAuthorizedTransaction(
-                $cart,
-                $webpayTransaction,
-                $commitResponse
-            );
+        $details = $commitResponse->getDetails();
+    
+        $this->logInfo("Detalles de la transacción después del commit: " . json_encode($details));
+    
+        $transaccionIntegra = true;
+        $autorizadas = [];
+    
+        foreach ($details as $detail) {
+            $responseCode = $detail->getResponseCode();
+            $status = $detail->getStatus();
+            $buyOrder = $detail->getBuyOrder();
+    
+            if ($responseCode === 0 && $status === 'AUTHORIZED') {
+                $autorizadas[] = $detail;
+            } else {
+                $this->logInfo("Subtransacción rechazada: {$buyOrder}");
+                $transaccionIntegra = false; 
+            }
+        }
+    
+        if ($transaccionIntegra) {
+            $this->logInfo("Transacción íntegra, procesando orden con token: {$token}");
+            $this->handleAuthorizedTransaction($cart, $webpayTransaction, $commitResponse);
         } else {
+            foreach ($autorizadas as $detail) {
+                $this->logInfo("Refund subtransacción autorizada: " . json_encode([
+                    'buy_order' => $detail->getBuyOrder(),
+                    'commerce_code' => $detail->getCommerceCode(),
+                    'amount' => $detail->getAmount()
+                ]));
+    
+                try {
+                    $transbankSdk->refundMallTransaction(
+                        $token,
+                        $detail->getBuyOrder(),
+                        $detail->getCommerceCode(),
+                        $detail->getAmount()
+                    );
+                    $this->logInfo("Refund ejecutado correctamente para: " . $detail->getBuyOrder());
+                } catch (\Exception $e) {
+                    $this->logError("Error al ejecutar refund para {$detail->getBuyOrder()}: " . $e->getMessage());
+                }
+            }
+    
+            $this->logInfo("Transacción no íntegra, procesando como fallida. Token: {$token}");
             $this->handleUnauthorizedTransaction($webpayTransaction, $commitResponse);
         }
     }
