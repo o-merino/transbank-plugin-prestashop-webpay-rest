@@ -236,6 +236,63 @@ class TbkResponseUtil
             'balance' => $balance
         ];
     }
+    /**
+     * Get the formatted response for Webpay status transactions.
+     *
+     * @param object $statusResponse The response object for Webpay status transactions.
+     * @return array The formatted response fields.
+     */
+    public static function getWebpayMallStatusFormattedResponse(object $statusResponse): array
+    {
+        $commonFields = self::getCommonFieldsStatusFormatted($statusResponse);
+
+        // Usamos la primera subtransacción como base
+        $firstDetail = $statusResponse->details[0] ?? null;
+
+        if (!$firstDetail) {
+            return [
+                'status' => 'No se encontraron subtransacciones',
+                'amount' => '0',
+            ];
+        }
+
+        // Sumar monto total
+        $totalAmount = 0;
+        foreach ($statusResponse->details as $detail) {
+            $totalAmount += $detail->amount ?? 0;
+        }
+
+        $status = self::getStatus($firstDetail->status ?? 'desconocido');
+        $amount = self::getAmountFormatted($totalAmount);
+        $paymentType = self::getPaymentType($firstDetail->paymentTypeCode ?? '');
+        $installmentType = self::getInstallmentType($firstDetail->paymentTypeCode ?? '');
+        $installmentNumber = $firstDetail->installmentsNumber ?? 0;
+        $installmentAmount = 'N/A';
+        $balance = 'N/A';
+
+        if ($installmentNumber > 0) {
+            $installmentAmount = self::getAmountFormatted($firstDetail->installmentsAmount ?? 0);
+        }
+
+        return [
+            'vci' => $statusResponse->vci ?? 'N/A',
+            'status' => $status,
+            'responseCode' => $firstDetail->responseCode ?? 'N/A',
+            'amount' => $amount,
+            'authorizationCode' => $firstDetail->authorizationCode ?? '',
+            'accountingDate' => $commonFields['accountingDate'],
+            'paymentType' => $paymentType,
+            'installmentType' => $installmentType,
+            'installmentNumber' => $installmentNumber,
+            'installmentAmount' => $installmentAmount,
+            'sessionId' => $statusResponse->sessionId ?? '',
+            'buyOrder' => $commonFields['buyOrder'],
+            'cardNumber' => $commonFields['cardNumber'],
+            'transactionDate' => $commonFields['transactionDate'],
+            'transactionTime' => $commonFields['transactionTime'],
+            'balance' => $balance
+        ];
+    }
 
     /**
      * Get the formatted response for Oneclick status transactions.

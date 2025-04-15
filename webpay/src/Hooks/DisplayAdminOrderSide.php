@@ -8,6 +8,7 @@ use PrestaShop\Module\WebpayPlus\Helpers\TbkResponseUtil;
 use PrestaShop\Module\WebpayPlus\Helpers\InteractsWithWebpayDb;
 use PrestaShop\Module\WebpayPlus\Model\TransbankWebpayRestTransaction;
 use Transbank\Plugin\Helpers\TbkConstants;
+use PrestaShop\Module\WebpayPlus\Helpers\TbkFactory;
 
 /**
  * Class DisplayAdminOrderSide
@@ -24,6 +25,7 @@ class DisplayAdminOrderSide implements HookHandlerInterface
      * @var Template Instance of the Template utility to render Twig templates.
      */
     private $template;
+    public $log;
 
     /**
      * Constructor.
@@ -32,6 +34,7 @@ class DisplayAdminOrderSide implements HookHandlerInterface
     public function __construct()
     {
         $this->template = new Template();
+        $this->log = TbkFactory::createLogger();
     }
 
     /**
@@ -67,9 +70,9 @@ class DisplayAdminOrderSide implements HookHandlerInterface
             $status = $objectResponse->details[0]->status ?? 'desconocido';
     
         } elseif ($product === TransbankWebpayRestTransaction::PRODUCT_WEBPAY_MALL) {
-            $formattedResponse = TbkResponseUtil::getWebpayStatusFormattedResponse($objectResponse);
+            $this->logInfo("displayAdminOrderSide: Es una transacción mall");
+            $formattedResponse = TbkResponseUtil::getWebpayMallStatusFormattedResponse($objectResponse);
             $formattedResponse['token'] = $transbankTransaction->token;
-            $status = 'AUTHORIZED';
     
             if (isset($objectResponse->details) && is_array($objectResponse->details)) {
                 foreach ($objectResponse->details as $detail) {
@@ -80,6 +83,7 @@ class DisplayAdminOrderSide implements HookHandlerInterface
                         'authorization_code' => $detail->authorizationCode ?? '',
                         'status' => (string) ($detail->status ?? 'AUTHORIZED'),
                     ];
+                    $this->logInfo("displayAdminOrderSide: Detalle de transacción mall: {$detail->commerceCode} - {$detail->buyOrder} - {$detail->amount} - {$detail->authorizationCode} - {$detail->status}");
                 }
             }
         } else {
@@ -208,5 +212,15 @@ class DisplayAdminOrderSide implements HookHandlerInterface
         }
 
         return "{$productTitle} {$titleDetail}";
+    }
+
+    protected function logError($msg)
+    {
+        $this->log->logError($msg);
+    }
+
+    protected function logInfo($msg)
+    {
+        $this->log->logInfo($msg);
     }
 }

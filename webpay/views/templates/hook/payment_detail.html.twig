@@ -11,5 +11,34 @@
 				</div>
 			{% endfor %}
 		{% endif %}
+		
+		{# Vista Webpay Mall: lista de subtransacciones #}
+		{% if mallDetails is defined and mallDetails|length > 0 %}
+			<hr>
+			<h4>Subtransacciones Webpay Mall</h4>
+			{% for item in mallDetails %}
+				<div class="tbk-field">
+					<span class="tbk-field-name">Comercio:</span>
+					<span class="tbk-field-value">{{ item.commerce_code|default('-') }}</span>
+				</div>
+				<div class="tbk-field">
+					<span class="tbk-field-name">Orden:</span>
+					<span class="tbk-field-value">{{ item.buy_order|default('-') }}</span>
+				</div>
+				<div class="tbk-field">
+					<span class="tbk-field-name">Monto:</span>
+					<span class="tbk-field-value">${{ item.amount|number_format(0, '.', '.') }}</span>
+				</div>
+				<div class="tbk-field">
+					<span class="tbk-field-name">Autorización:</span>
+					<span class="tbk-field-value">{{ item.authorization_code|default('-') }}</span>
+				</div>
+				<div class="tbk-field">
+					<span class="tbk-field-name">Estado:</span>
+					<span class="tbk-field-value">{{ item.status|default('-') }}</span>
+				</div>
+				<hr>
+			{% endfor %}
+		{% endif %}
 	</div>
 </div>
