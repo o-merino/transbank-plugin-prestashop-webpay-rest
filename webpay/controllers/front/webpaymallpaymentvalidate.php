@@ -197,6 +197,7 @@ class WebPayWebpaymallPaymentValidateModuleFrontController extends PaymentModule
         if ($transaccionIntegra == false) {
 
             //buscamos la autorizada 
+            $index = 0;
             foreach ($details as $detail) {
 
                 if ($detail->isApproved()) {
@@ -215,25 +216,23 @@ class WebPayWebpaymallPaymentValidateModuleFrontController extends PaymentModule
                         $refundResponse = $transbankSdk->refundMallTransaction($token, $buyOrder, $commerceCode, $amount);
                         $this->logInfo("Refund ejecutado correctamente para: {$buyOrder}");
                     
-                        $responseData = json_decode($webpayTransaction->transbank_response, true);
-                    
-                        if (isset($responseData['details']) && is_array($responseData['details'])) {
-                            foreach ($responseData['details'] as &$sub) {
-                                $sub['refunded'] = true;
-                                $sub['refundResponse'] = json_decode(json_encode($refundResponse), true);
-                                $this->logInfo("Marcada como reembolsada en transbank_response: {$buyOrder}");
-                            }
-                    
-                            $webpayTransaction->transbank_response = json_encode($responseData);
-                            $webpayTransaction->save();
-                    
-                            $this->handleUnauthorizedMallTransaction($webpayTransaction, $commitResponse);
-                            return;
-                        }
+                        $transbank_response = json_decode($webpayTransaction->transbank_response, true);
+
+                        $transbank_response['details'][$index]['refundResponse'] = json_decode(json_encode($refundResponse), true);
+
+                        
+                        $this->logInfo("Marcada como reembolsada en transbank_response: {$buyOrder}");
+
+                        $webpayTransaction->transbank_response = json_encode($transbank_response);
+                        $webpayTransaction->save();
+                
+                        $this->handleUnauthorizedMallTransaction($webpayTransaction, $commitResponse);
+                        return;
                     } catch (\Exception $e) {
                         $this->logError("Error al ejecutar refund para {$buyOrder}: " . $e->getMessage());
                     }
                 }
+                $index++;
             }
         }
     }
