@@ -15,6 +15,8 @@ use Transbank\Webpay\WebpayPlus\MallTransaction;
 use Transbank\Webpay\WebpayPlus\Responses\MallTransactionCommitResponse;
 use Transbank\Webpay\WebpayPlus\Exceptions\MallTransactionCommitException;
 use Transbank\Webpay\WebpayPlus\Exceptions\MallTransactionCreateException;
+use Transbank\Webpay\WebpayPlus\Responses\MallTransactionRefundResponse;
+use Transbank\Webpay\WebpayPlus\Exceptions\WebpayRequestException;
 /**
  * Class TransbankSdkWebpayRest.
  */
@@ -181,7 +183,7 @@ class TransbankSdkWebpay
         }
     }
     
-    public function refundMallTransaction(string $token, string $buyOrder, string $commerceCode, int $amount)
+    public function refundMallTransaction(string $token, string $buyOrder, string $commerceCode, int $amount): MallTransactionRefundResponse
     {
         try {
             $this->log->logInfo("Ejecutando refundMallTransaction: token: {$token}, buyOrder: {$buyOrder}, commerceCode: {$commerceCode}, amount: {$amount}");
@@ -191,7 +193,7 @@ class TransbankSdkWebpay
             $this->log->logInfo("Resultado refundMallTransaction: " . json_encode($response));
 
             return $response;
-        } catch (\Exception $e) {
+        } catch (WebpayRequestException $e) {
             $this->log->logError("Error en refundMallTransaction: " . $e->getMessage());
             throw new EcommerceException("Error ejecutando refund para subtransacción: {$buyOrder}", $e);
         }
