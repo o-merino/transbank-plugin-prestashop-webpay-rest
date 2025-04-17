@@ -137,6 +137,30 @@ class TbkResponseUtil
         return array_merge($commonFields, $webpayFields);
     }
 
+    public static function getWebpayMallFormattedResponse(object $transactionResponse): array
+    {
+        $commonFields = self::getCommonFieldsFormatted($transactionResponse);
+
+        $details = $transactionResponse->details ?? [];
+
+        $totalAmount = 0;
+        $first = $details[0] ?? null;
+
+        foreach ($details as $detail) {
+            $totalAmount += $detail->amount ?? 0;
+        }
+
+        return array_merge($commonFields, [
+            'amount' => self::getAmountFormatted($totalAmount),
+            'authorizationCode' => $first->authorizationCode ?? '',
+            'paymentType' => self::getPaymentType($first->paymentTypeCode ?? ''),
+            'installmentType' => self::getInstallmentType($first->paymentTypeCode ?? ''),
+            'installmentNumber' => $first->installmentsNumber ?? 0,
+            'installmentAmount' => self::getAmountFormatted($first->installmentsAmount ?? 0),
+        ]);
+    }
+
+
     /**
      * Get the formatted response for Oneclick transactions.
      *

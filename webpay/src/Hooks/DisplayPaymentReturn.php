@@ -48,7 +48,11 @@ class DisplayPaymentReturn implements HookHandlerInterface
         $formattedResponse = [];
         if ($product === TransbankWebpayRestTransaction::PRODUCT_WEBPAY_ONECLICK) {
             $formattedResponse = TbkResponseUtil::getOneclickFormattedResponse($objectResponse);
-        } else {
+
+        }else if($product === TransbankWebpayRestTransaction::PRODUCT_WEBPAY_MALL){
+            $formattedResponse = TbkResponseUtil::getWebpayMallFormattedResponse($objectResponse);
+        } 
+        else {
             $formattedResponse = TbkResponseUtil::getWebpayFormattedResponse($objectResponse);
         }
 
