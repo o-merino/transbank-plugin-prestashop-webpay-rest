@@ -62,7 +62,8 @@ class WebPayWebpayplusPaymentModuleFrontController extends BaseModuleFrontContro
                 $this->logInfo("amount: {$totalProductos} sessionId: {$sessionId} buyOrder: {$buyOrder} returnUrl: {$returnUrl}");
                 
                 $returnUrl = $this->getReturnUrl('webpaymallpaymentvalidate');
-
+                
+                // modificar en produccion!!!!!!
                 $details = [ 
                     [
                         'commerce_code' => '597055555536',

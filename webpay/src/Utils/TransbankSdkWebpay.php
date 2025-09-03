@@ -48,7 +48,12 @@ class TransbankSdkWebpay
 
         if (isset($config) && $environment == Options::ENVIRONMENT_PRODUCTION) {
             $this->options = Options::forProduction($config['COMMERCE_CODE'], $config['API_KEY_SECRET']);
-            $this->malloptions = Options::forProduction($config['COMMERCE_CODE'], $config['API_KEY_SECRET']);
+
+            // modificar en produccion!!!!!!
+            $this->malloptions = Options::forProduction(
+                '597055555530', // Mall padre real en PRODUCCIÓN
+                'TU_API_KEY_MALL'
+            );
         }
         
         $this->mallTransaction = new MallTransaction($this->malloptions);
