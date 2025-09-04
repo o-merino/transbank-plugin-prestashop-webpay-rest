@@ -146,7 +146,10 @@ class WebPayWebpayplusPaymentModuleFrontController extends BaseModuleFrontContro
         $transaction->shop_id = (int) Context::getContext()->shop->id;
         $transaction->currency_id = $currencyId;
 
-        $transaction->commerce_code = $webpay->getCommerceCode();
+        $transaction->commerce_code = $isMall 
+            ? $webpay->getMallCommerceCode()
+            : $webpay->getCommerceCode();
+            
         $transaction->environment = $webpay->getEnviroment();
 
         if ($isMall) {
