@@ -57,9 +57,17 @@ class PaymentOptions implements HookHandlerInterface
             return $paymentOptions;
         }
 
+
+        //webpay para debito
         if (WebpayConfig::isConfigOk() && WebpayConfig::isPaymentMethodActive()) {
             $paymentOptions[] = $this->getWebpayPaymentOption();
         }
+
+            // 🔹 2. Webpay Crédito - nuevo método
+        if (WebpayConfig::isConfigOk() && WebpayConfig::isPaymentMethodActive()) {
+            $paymentOptions[] = $this->getWebpayCreditPaymentOption();
+        }
+
 
         if (OneclickConfig::isConfigOk() && OneclickConfig::isPaymentMethodActive() && $this->isCustomerLogged()) {
             array_push($paymentOptions, ...$this->getOneclickPaymentOptions());
@@ -97,9 +105,33 @@ class PaymentOptions implements HookHandlerInterface
         $link = new Link();
 
         $paymentController = $link->getModuleLink(TbkConstants::MODULE_NAME, 'webpaypluspayment', array(), true);
-        $message = "Permite el pago de productos y/o servicios, con tarjetas de crédito,
-            débito y prepago a través de Webpay Plus";
+        $message = "Permite el pago de productos y/o servicios, con tarjetas de débito y prepago a través de Webpay Plus";
         $logoPath = _PS_MODULE_DIR_ . TbkConstants::MODULE_NAME . '/views/img/wpplus_small.png';
+
+        return
+            $paymentOption->setCallToActionText($message)
+                ->setAction($paymentController)
+                ->setLogo(Media::getMediaPath($logoPath));
+    }
+
+    private function getWebpayCreditPaymentOption(): PaymentOption
+    {
+        $paymentOption = new PaymentOption();
+        $link = new Link();
+
+        // Controlador nuevo (webpaypluspaymentcredit)
+        $paymentController = $link->getModuleLink(
+            TbkConstants::MODULE_NAME,
+            'webpaypluspaymentcredit',
+            [],
+            true
+        );
+
+        // Texto visible en checkout
+        $message = "Pago con tarjeta de crédito mediante Webpay Plus (código de comercio crédito)";
+
+        // Logo distinto (puedes usar otro ícono si quieres)
+        $logoPath = _PS_MODULE_DIR_ . TbkConstants::MODULE_NAME . '/views/img/wpplus_credit.png';
 
         return
             $paymentOption->setCallToActionText($message)

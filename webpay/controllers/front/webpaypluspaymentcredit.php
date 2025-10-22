@@ -3,14 +3,14 @@
 use PrestaShop\Module\WebpayPlus\Controller\BaseModuleFrontController;
 use PrestaShop\Module\WebpayPlus\Model\TransbankWebpayRestTransaction;
 use PrestaShop\Module\WebpayPlus\Helpers\WebpayPlusFactory;
-use PrestaShop\Module\WebpayPlus\Utils\TransbankSdkWebpay;
+use PrestaShop\Module\WebpayPlus\Utils\TransbankSdkWebpayCredit;
 use PrestaShop\Module\WebpayPlus\Helpers\TbkFactory;
 use Transbank\Plugin\Exceptions\EcommerceException;
 
 /**
  * Class WebPayWebpayplusPaymentModuleFrontController.
  */
-class WebPayWebpayplusPaymentModuleFrontController extends BaseModuleFrontController
+class WebPayWebpayplusPaymentCreditModuleFrontController extends BaseModuleFrontController
 {
     /**
      * Constructor for the payment controller.
@@ -39,39 +39,41 @@ class WebPayWebpayplusPaymentModuleFrontController extends BaseModuleFrontContro
             $buyOrder = "ps:{$randomNumber}:{$cartId}";
             $sessionId = "ps:sessionId:{$randomNumber}:{$cartId}";
 
-            $returnUrl = $this->getReturnUrl('webpaypluspaymentvalidate');
+            $returnUrl = $this->getReturnUrl('webpaypluspaymentvalidatecredit');
 
-            $this->logger->logInfo("Creando transacción Webpay Plus. [Datos]:");
+            $this->logger->logInfo("Creando transacción Webpay Plus solo para credito. [Datos]:");
             $this->logInfo("amount: {$amount} sessionId: {$sessionId} buyOrder: {$buyOrder} returnUrl: {$returnUrl}");
 
-            $webpaySdk = WebpayPlusFactory::create();
+            $webpaySdk = WebpayPlusFactory::createCreditSDK();
             /*     */
-                
+   
             $isMall = false;
             $despacho = $this->getOrderTotalEnvio($cart);
             $totalProductos = $this->getOrderTotalProductos($cart);
             $this->logInfo("Total productos: {$totalProductos} Total despacho: {$despacho} amount: {$amount}"); 
 
             if ($despacho == 0) {
+                $this->logInfo("datos {$amount}, {$sessionId}, {$buyOrder}, {$returnUrl}");
+
+
                 $createResponse = $webpaySdk->createTransaction($amount, $sessionId, $buyOrder, $returnUrl);
                 $this->logInfo("Transacción Webpay creada. [Respuesta]:");
-
             }else {
                 // crear la transacción Mall
                 $this->logInfo("Creando transacción Webpay Mall porque incluye despacho. [Datos]:");
                 $this->logInfo("amount: {$totalProductos} sessionId: {$sessionId} buyOrder: {$buyOrder} returnUrl: {$returnUrl}");
                 
-                $returnUrl = $this->getReturnUrl('webpaymallpaymentvalidate');
+                $returnUrl = $this->getReturnUrl('webpaymallpaymentvalidatecredit');
                 
                 // modificar en produccion!!!!!!
                 $details = [ 
                     [
-                        'commerce_code' => '597055555536',
+                        'commerce_code' => '597055555582',
                         'buy_order'     => $buyOrder . '-PRD',
                         'amount'        => $totalProductos
                     ],
                     [
-                        'commerce_code' => '597055555537',
+                        'commerce_code' => '597055555583',
                         'buy_order'     => $buyOrder . '-DLV',
                         'amount'        => $despacho
                     ]
@@ -112,7 +114,7 @@ class WebPayWebpayplusPaymentModuleFrontController extends BaseModuleFrontContro
     /**
      * Saves the Webpay Plus transaction details in the database.
      *
-     * @param TransbankSdkWebpay $webpay The Webpay SDK instance.
+     * @param TransbankSdkWebpayCredit $webpay The Webpay SDK instance.
      * @param string $sessionId The unique session ID for the transaction.
      * @param int $cartId The cart ID associated with the transaction.
      * @param int $currencyId The currency ID for the transaction.
@@ -125,7 +127,7 @@ class WebPayWebpayplusPaymentModuleFrontController extends BaseModuleFrontContro
      * @throws EcommerceException If the transaction cannot be saved in the database.
      */
     private function    createTransbankTransactionRecord(
-        TransbankSdkWebpay $webpay,
+        TransbankSdkWebpayCredit $webpay,
         string $sessionId,
         int $cartId,
         int $currencyId,

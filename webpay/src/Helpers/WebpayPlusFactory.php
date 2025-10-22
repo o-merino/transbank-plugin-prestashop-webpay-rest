@@ -4,6 +4,7 @@ namespace PrestaShop\Module\WebpayPlus\Helpers;
 
 use PrestaShop\Module\WebpayPlus\Config\WebpayConfig;
 use PrestaShop\Module\WebpayPlus\Utils\TransbankSdkWebpay;
+use PrestaShop\Module\WebpayPlus\Utils\TransbankSdkWebpayCredit;
 
 class WebpayPlusFactory
 {
@@ -21,5 +22,17 @@ class WebpayPlusFactory
         ];
 
         return new TransbankSdkWebpay($config);
+    }
+
+
+    public static function createCreditSDK(): TransbankSdkWebpayCredit
+    {
+        $config = [
+            'ENVIRONMENT' => WebpayConfig::getEnvironment(),
+            'API_KEY_SECRET' => WebpayConfig::getApiKey(),
+            'COMMERCE_CODE' => WebpayConfig::getCommerceCode(),
+        ];
+
+        return new TransbankSdkWebpayCredit($config);
     }
 }
