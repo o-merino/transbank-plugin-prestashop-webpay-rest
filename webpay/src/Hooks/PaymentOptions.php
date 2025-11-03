@@ -105,7 +105,7 @@ class PaymentOptions implements HookHandlerInterface
         $link = new Link();
 
         $paymentController = $link->getModuleLink(TbkConstants::MODULE_NAME, 'webpaypluspayment', array(), true);
-        $message = "Permite el pago de productos y/o servicios, con tarjetas de débito y prepago a través de Webpay Plus";
+        $message = "Pago con tarejta de débito través de Webpay Plus";
         $logoPath = _PS_MODULE_DIR_ . TbkConstants::MODULE_NAME . '/views/img/wpplus_small.png';
 
         return
@@ -128,7 +128,7 @@ class PaymentOptions implements HookHandlerInterface
         );
 
         // Texto visible en checkout
-        $message = "Pago con tarjeta de crédito mediante Webpay Plus (código de comercio crédito)";
+        $message = "Pago con tarjeta de crédito mediante Webpay Plus";
 
         // Logo distinto (puedes usar otro ícono si quieres)
         $logoPath = _PS_MODULE_DIR_ . TbkConstants::MODULE_NAME . '/views/img/wpplus_credit.png';

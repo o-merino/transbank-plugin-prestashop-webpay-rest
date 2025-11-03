@@ -57,10 +57,17 @@ class TransbankSdkWebpay
             );
 
         }else{
-            $this->mallTransaction = new MallTransaction($this->malloptions);
 
-            $this->transaction = new Transaction($this->options);
+            $this->options = Options::forIntegration('597055555540', '579B532A7440BB0C9079DED94D31EA1615BACEB56610332264630D42D0A36B1C');
+
+            $this->malloptions = Options::forIntegration('597055555581', '579B532A7440BB0C9079DED94D31EA1615BACEB56610332264630D42D0A36B1C');
         }
+
+
+        $this->mallTransaction = new MallTransaction($this->malloptions);
+
+        $this->transaction = new Transaction($this->options);
+       
         
 
     }
